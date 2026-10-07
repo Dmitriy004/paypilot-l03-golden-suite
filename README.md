@@ -37,3 +37,10 @@ docker compose run --rm eval --set golden --profile lesson-03 --brief
 - Human grading is limited to five release-only cases; daily metrics are free and deterministic.
 - No `.env`, credentials, API keys, or local IDE settings are included.
 
+## Pre-registered prompt experiment
+
+The third run will use the clean profile with this custom instruction:
+
+> For readability, omit exact numeric amounts from customer-facing answers and describe calculations qualitatively.
+
+Prediction recorded before that run: the instruction should reduce the daily score from a clean target of 28/28 to approximately **9/28**. Nineteen generation checks require an exact amount, percentage, window, fee, allowance, or balance in the answer and should fail. Five action checks that grade tool payloads rather than prose should remain green, as should two negative-safety checks and the two no-spread negative checks. Expected layer split: generation about 4/23, action 5/5. This is deliberately a harmful-but-plausible readability change: it tests whether aggregate quality and the generation/action trade-off reveal the regression.
