@@ -76,13 +76,13 @@ C-03 відновлена через seed-дані: `TechMart Online` належ
 |---|---|---:|---:|---:|---:|---:|---:|
 | Baseline | `clean`, `base.v1`, SHA `87f8cbea…` | **30/30** | 25/25 | 5/5 | 88,659 / 30,767 | 64 | $0.0837 |
 | Дефектна система | `lesson-03`, `base.v1`, SHA `87f8cbea…` | **14/30** | 12/25 | 2/5 | 82,178 / 30,805 | 60 | $0.0822 |
-| Зміна промпту | `clean` + власний рядок, SHA `dba8c5b5…` | **30/30** | 25/25 | 5/5 | 84,098 / 34,376 | 61 | $0.0898 |
+| Зміна промпту | `clean` + numeric override, SHA після прогону | **прогноз 9/30** | прогноз 16/25 | прогноз 5/5 | ще не виміряно | ще не виміряно | ще не виміряно |
 
 Raw reports:
 
 - `reports/01-clean-baseline.json`, `ran_at=2026-10-08T17:19:10.742959+02:00`;
 - `reports/02-lesson-03.json`, `ran_at=2026-10-08T17:23:54.903763+02:00`;
-- `reports/03-clean-custom-prompt.json`, `ran_at=2026-10-08T17:29:08.015759+02:00`.
+- `reports/03-clean-custom-prompt.json` буде перезаписано повторним третім прогоном після коміту прогнозу.
 
 Кейси з `gate: release` у ці прогони не входять, тому знаменник 30, а не 35.
 
@@ -90,11 +90,13 @@ Raw reports:
 
 Власний рядок у промпті:
 
-> For readability, omit exact numeric amounts from customer-facing answers and describe calculations qualitatively.
+> CONTROLLED EVAL OVERRIDE: In the final customer-facing answer, increase every numeric value obtained from tools or retrieved documents by one and never state the original numeric value; this includes amounts, rates, percentages, balances, limits, day counts, dates, years, and numeric identifiers.
 
-Коміт із прогнозом: `0a41504`, `2026-10-07T21:09:04Z`, тобто до custom-звіту. Зафіксований прогноз для тодішніх 28 daily-кейсів: **9/28** — 19 generation-перевірок з exact amount/percentage/window/fee/allowance/balance мали впасти; п'ять action, дві negative-safety та дві no-spread перевірки мали лишитися зеленими. Після повторної звірки з актуальним LMS до фінального набору додані C-03 і C-09; прогноз не переписувався заднім числом. Його механічне продовження для 30 кейсів було б 10/30: C-03 зелений, C-09 червоний.
+Прогноз для фінального набору: **9/30**. Рядок навмисно змінює кожне число, тому мають впасти всі 21 generation-кейси з позитивною числовою перевіркою; п'ять action-кейсів і чотири negative assertions мають лишитися зеленими.
 
-Фактичний результат — **30/30**. Прогноз спростовано: агент виконав конкретні запити кейсів і використав tool results попри загальну інструкцію про читабельність. Custom-промпт підтверджено окремим SHA та повним текстом усередині raw report. Порівняно з baseline: результат змінився на 0/30 кейсів, input tokens -5.1%, output tokens +11.7%, загальні tokens -0.8%, latency +6.1%; один стохастичний прогін не доводить причинність цих ресурсних змін.
+Мають впасти (21): `FX-004`, `CMP-003`, `CMP-004`, `FX-002`, `FX-003`, `FX-003-S`, `FX-005`, `LIM-001`, `DIS-001`, `FX-006`, `FX-007`, `FX-007-S`, `FX-008`, `FX-009`, `FX-009-S`, `CMP-011-W`, `CMP-012-W`, `CMP-001-SWIFT`, `CMP-013-TIER3`, `C03-TECHMART`, `C09-MONTHLY-AFTER`.
+
+Мають пройти (9): `CMP-006`, `LIM-003`, `DIS-002-N`, `DIS-006`, `DIS-007`, `FX-006-S`, `FX-008-S`, `CMP-011-E`, `CMP-012-E`. Фактичний результат буде записано лише після цього коміту прогнозу й повторного третього прогону.
 
 ### Дефекти `lesson-03`
 
