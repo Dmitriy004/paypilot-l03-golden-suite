@@ -43,14 +43,34 @@ class GoldenGeneratorTests(unittest.TestCase):
             self.assertEqual("hw2", meta["added_in"])
             self.assertTrue(meta["engine_call"])
 
-    def test_generator_adds_twelve_hw2_engine_cases(self):
+    def test_generator_adds_fourteen_hw2_engine_cases(self):
         cases = generate_golden.all_cases()
         own = [case for case in cases
                if case["additional_metadata"].get("added_in") == "hw2"]
 
-        self.assertEqual(12, len(own))
-        self.assertEqual(33, len(cases))
+        self.assertEqual(14, len(own))
+        self.assertEqual(35, len(cases))
         self.assertEqual(len(cases), len({case["id"] for case in cases}))
+
+    def test_context_recovered_complaints_are_engine_grounded(self):
+        cases = {case["id"]: case for case in generate_golden.all_cases()}
+
+        expected = {
+            "C03-TECHMART": ("C-03", False),
+            "C09-MONTHLY-AFTER": ("C-09", 864666.0),
+        }
+        for case_id, (complaint_id, value) in expected.items():
+            with self.subTest(case_id=case_id):
+                case = cases[case_id]
+                meta = case["additional_metadata"]
+                self.assertEqual("complaint", meta["source"])
+                self.assertEqual("hw2", meta["added_in"])
+                self.assertEqual(complaint_id, meta["complaint_id"])
+                self.assertTrue(meta["engine_call"])
+                if isinstance(value, bool):
+                    self.assertEqual(value, meta["expected_flag"])
+                else:
+                    self.assertEqual(value, meta["expected_number"])
 
 
 if __name__ == "__main__":

@@ -215,6 +215,7 @@ def complaint_dispute_cases():
         common = {
             "oracle": "engine",
             "source": "complaint",
+            "complaint_id": "C-11" if prefix == "CMP-011" else "C-12",
             "severity": "critical",
             "runs": 1,
             "added_in": "hw2",
@@ -260,8 +261,104 @@ def complaint_dispute_cases():
     return out
 
 
+def context_recovered_complaint_cases():
+    """Create new cases after resolving ambiguous complaints against seed data."""
+    techmart_1 = disputes.check(
+        "duplicate_charge", date(2026, 7, 20), "settled", AS_OF, False)
+    techmart_2 = disputes.check(
+        "duplicate_charge", date(2026, 7, 14), "settled", AS_OF, False)
+
+    transfers = [
+        {"date": date(2026, 9, 15), "amount_eur": 4914.0},
+        {"date": date(2026, 9, 2), "amount_eur": 30420.0},
+        {"date": date(2026, 9, 15), "amount_eur": 100000.0},
+    ]
+    after_supplier_payment = limits.status("tier3", AS_OF, transfers)
+
+    return [
+        case(
+            "C03-TECHMART",
+            "I'm CUS-0004. Compare the two TechMart duplicate charges: "
+            "TX-0401 dated 20 July 2026 and TX-0402 dated 14 July 2026. "
+            "Which transaction is still eligible for a dispute today?",
+            "TX-0401 remains eligible; TX-0402 expired on 12 September 2026.",
+            {
+                "layer": "generation",
+                "oracle": "engine",
+                "assertion": "regex",
+                "pattern": (
+                    r"(?is)(?=.*TX-0401.{0,160}(?:eligible|within|can be disputed))"
+                    r"(?=.*TX-0402.{0,160}(?:not eligible|outside|expired|cannot be disputed))"
+                ),
+                "source": "complaint",
+                "complaint_id": "C-03",
+                "failure_mode": "wrong_window",
+                "severity": "critical",
+                "runs": 1,
+                "added_in": "hw2",
+                "gate": "daily",
+                "context": {
+                    "customer_id": "CUS-0004",
+                    "transaction_ids": ["TX-0401", "TX-0402"],
+                    "reason_code": "duplicate_charge",
+                    "clock": "2026-09-15T10:00:00Z",
+                },
+                "engine_call": (
+                    "disputes.check('duplicate_charge', date(2026, 7, 20), "
+                    "'settled', AS_OF, False).eligible == "
+                    f"{techmart_1.eligible}; disputes.check('duplicate_charge', "
+                    "date(2026, 7, 14), 'settled', AS_OF, False).eligible == "
+                    f"{techmart_2.eligible}"
+                ),
+                "expected_flag": techmart_2.eligible,
+                "why_this_level": (
+                    "the engine resolves both candidate transactions; a level-3 "
+                    "pattern is the cheapest check that requires the answer to "
+                    "distinguish the eligible July 20 charge from the expired July 14 charge"
+                ),
+            },
+        ),
+        case(
+            "C09-MONTHLY-AFTER",
+            "I'm CUS-0010. If I make a new EUR 100,000 supplier transfer "
+            "today, how much of my monthly transfer limit will remain?",
+            f"EUR {after_supplier_payment.monthly_remaining_eur:,.2f}",
+            {
+                "layer": "generation",
+                "oracle": "engine",
+                "assertion": "numeric",
+                "expected_number": after_supplier_payment.monthly_remaining_eur,
+                "tolerance": 1.0,
+                "source": "complaint",
+                "complaint_id": "C-09",
+                "failure_mode": "daily_as_monthly",
+                "severity": "high",
+                "runs": 1,
+                "added_in": "hw2",
+                "gate": "daily",
+                "context": {
+                    "customer_id": "CUS-0010",
+                    "account_id": "ACC-1011",
+                    "hypothetical_transfer_eur": 100000,
+                    "clock": "2026-09-15T10:00:00Z",
+                },
+                "engine_call": (
+                    "limits.status('tier3', AS_OF, seeded_transfers + "
+                    "[{'date': AS_OF, 'amount_eur': 100000.0}])"
+                ),
+                "why_this_level": (
+                    "the complaint is about a projected monthly remainder; the engine "
+                    "computes the post-transfer amount, so a numeric assertion with a "
+                    "one-euro tolerance is sufficient"
+                ),
+            },
+        ),
+    ]
+
+
 def all_cases():
-    return fx_cases() + limit_cases() + dispute_cases() + complaint_dispute_cases()
+    return (fx_cases() + limit_cases() + dispute_cases()
+            + complaint_dispute_cases() + context_recovered_complaint_cases())
 
 
 def main():
