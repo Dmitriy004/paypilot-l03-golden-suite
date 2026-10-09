@@ -55,6 +55,15 @@ class SubmissionDocumentTests(unittest.TestCase):
         self.assertIn("Прогноз для фінального набору: **9/30**", text)
         self.assertIn(f"Мають впасти (21): {expected_listing}.", text)
 
+    def test_readme_explains_actual_prompt_result_and_tolerance_boundary(self):
+        text = (ROOT / "README.md").read_text(encoding="utf-8")
+
+        self.assertIn("Коміт із прогнозом: `c8fda8f`", text)
+        self.assertIn("Фактичний результат — **11/30**", text)
+        self.assertIn("`LIM-001` і `C09-MONTHLY-AFTER`", text)
+        self.assertIn("`tolerance=1`", text)
+        self.assertIn("$0.3586", text)
+
     def test_residual_risk_follows_template_and_reconciles_cost(self):
         text = (ROOT / "residual-risk.md").read_text(encoding="utf-8")
 
@@ -70,7 +79,9 @@ class SubmissionDocumentTests(unittest.TestCase):
         self.assertIn("64", text)
         self.assertIn("119,426", text)
         self.assertIn("$0.0837", text)
-        self.assertIn("0 кейсах із 30", text)
+        self.assertIn("19 кейсах із 30", text)
+        self.assertIn("172,471", text)
+        self.assertIn("$0.1928", text)
         self.assertIn("Zero regulatory risk", text)
 
 

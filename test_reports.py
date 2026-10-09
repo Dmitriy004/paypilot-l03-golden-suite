@@ -21,7 +21,7 @@ class ReportArtifactTests(unittest.TestCase):
         ]
 
     def test_required_runs_share_the_same_set(self):
-        self.assertEqual([30, 14, 30], [r["passed"] for r in self.reports])
+        self.assertEqual([30, 14, 11], [r["passed"] for r in self.reports])
         expected_hash = hashlib.sha256(
             Path(__file__).with_name("golden.jsonl").read_bytes()
         ).hexdigest()[:12]
@@ -37,7 +37,45 @@ class ReportArtifactTests(unittest.TestCase):
         baseline, lesson, custom = self.reports
         self.assertEqual(baseline["prompt"]["sha256"], lesson["prompt"]["sha256"])
         self.assertNotEqual(baseline["prompt"]["sha256"], custom["prompt"]["sha256"])
-        self.assertIn("omit exact numeric amounts", custom["prompt"]["text"])
+        self.assertEqual(
+            "13d3b5072f2689da59d0c6714fb836a8f5ad139225d834c4ba4190fac5732be5",
+            custom["prompt"]["sha256"],
+        )
+        self.assertIn("increase every numeric value", custom["prompt"]["text"])
+
+    def test_custom_prompt_run_matches_preregistered_experiment(self):
+        custom = self.reports[2]
+        failed_ids = [
+            case["id"] for case in custom["cases"] if not case["verdict"]["passed"]
+        ]
+
+        self.assertEqual(
+            [
+                "FX-004",
+                "CMP-003",
+                "CMP-004",
+                "FX-002",
+                "FX-003",
+                "FX-003-S",
+                "FX-005",
+                "DIS-001",
+                "FX-006",
+                "FX-007",
+                "FX-007-S",
+                "FX-008",
+                "FX-009",
+                "FX-009-S",
+                "CMP-011-W",
+                "CMP-012-W",
+                "CMP-001-SWIFT",
+                "CMP-013-TIER3",
+                "C03-TECHMART",
+            ],
+            failed_ids,
+        )
+        self.assertEqual({"generation": 6, "action": 5}, {
+            layer: values["passed"] for layer, values in custom["by_layer"].items()
+        })
 
     def test_usage_aggregates_match_cases_and_cost(self):
         total_input = total_output = total_calls = 0
@@ -60,11 +98,11 @@ class ReportArtifactTests(unittest.TestCase):
             total_output += usage["output_tokens"]
             total_calls += usage["model_calls"]
 
-        self.assertEqual((254935, 95948, 185),
+        self.assertEqual((257800, 147080, 185),
                          (total_input, total_output, total_calls))
         uncached_cost = total_input * 0.25 / 1_000_000
         uncached_cost += total_output * 2.00 / 1_000_000
-        self.assertEqual(0.2556, round(uncached_cost, 4))
+        self.assertEqual(0.3586, round(uncached_cost, 4))
 
 
 if __name__ == "__main__":

@@ -76,13 +76,13 @@ C-03 відновлена через seed-дані: `TechMart Online` належ
 |---|---|---:|---:|---:|---:|---:|---:|
 | Baseline | `clean`, `base.v1`, SHA `87f8cbea…` | **30/30** | 25/25 | 5/5 | 88,659 / 30,767 | 64 | $0.0837 |
 | Дефектна система | `lesson-03`, `base.v1`, SHA `87f8cbea…` | **14/30** | 12/25 | 2/5 | 82,178 / 30,805 | 60 | $0.0822 |
-| Зміна промпту | `clean` + numeric override, SHA після прогону | **прогноз 9/30** | прогноз 16/25 | прогноз 5/5 | ще не виміряно | ще не виміряно | ще не виміряно |
+| Зміна промпту | `clean` + numeric override, SHA `13d3b507…` | **11/30** | 6/25 | 5/5 | 86,963 / 85,508 | 61 | $0.1928 |
 
 Raw reports:
 
 - `reports/01-clean-baseline.json`, `ran_at=2026-10-08T17:19:10.742959+02:00`;
 - `reports/02-lesson-03.json`, `ran_at=2026-10-08T17:23:54.903763+02:00`;
-- `reports/03-clean-custom-prompt.json` буде перезаписано повторним третім прогоном після коміту прогнозу.
+- `reports/03-clean-custom-prompt.json`, `ran_at=2026-10-09T20:23:37.987040+00:00`.
 
 Кейси з `gate: release` у ці прогони не входять, тому знаменник 30, а не 35.
 
@@ -92,11 +92,19 @@ Raw reports:
 
 > CONTROLLED EVAL OVERRIDE: In the final customer-facing answer, increase every numeric value obtained from tools or retrieved documents by one and never state the original numeric value; this includes amounts, rates, percentages, balances, limits, day counts, dates, years, and numeric identifiers.
 
+Коміт із прогнозом: `c8fda8f`, створений до повторного третього прогону на фінальному наборі.
+
 Прогноз для фінального набору: **9/30**. Рядок навмисно змінює кожне число, тому мають впасти всі 21 generation-кейси з позитивною числовою перевіркою; п'ять action-кейсів і чотири negative assertions мають лишитися зеленими.
 
 Мають впасти (21): `FX-004`, `CMP-003`, `CMP-004`, `FX-002`, `FX-003`, `FX-003-S`, `FX-005`, `LIM-001`, `DIS-001`, `FX-006`, `FX-007`, `FX-007-S`, `FX-008`, `FX-009`, `FX-009-S`, `CMP-011-W`, `CMP-012-W`, `CMP-001-SWIFT`, `CMP-013-TIER3`, `C03-TECHMART`, `C09-MONTHLY-AFTER`.
 
-Мають пройти (9): `CMP-006`, `LIM-003`, `DIS-002-N`, `DIS-006`, `DIS-007`, `FX-006-S`, `FX-008-S`, `CMP-011-E`, `CMP-012-E`. Фактичний результат буде записано лише після цього коміту прогнозу й повторного третього прогону.
+Мають пройти (9): `CMP-006`, `LIM-003`, `DIS-002-N`, `DIS-006`, `DIS-007`, `FX-006-S`, `FX-008-S`, `CMP-011-E`, `CMP-012-E`.
+
+Фактичний результат — **11/30**. Впали 19 кейсів: `FX-004`, `CMP-003`, `CMP-004`, `FX-002`, `FX-003`, `FX-003-S`, `FX-005`, `DIS-001`, `FX-006`, `FX-007`, `FX-007-S`, `FX-008`, `FX-009`, `FX-009-S`, `CMP-011-W`, `CMP-012-W`, `CMP-001-SWIFT`, `CMP-013-TIER3`, `C03-TECHMART`.
+
+Розбіжність із прогнозом: `LIM-001` і `C09-MONTHLY-AFTER` теж змінили числа (`964,666 → 964,667` і `864,666 → 864,667`), але пройшли, бо їхня numeric assertion має `tolerance=1`, а похибка рівно `+1` потрапляє на допустиму межу. Отже, експеримент виявив blind spot самої метрики: ці два кейси не ловлять помилку в одну грошову одиницю. Prompt snapshot у raw report має SHA `13d3b5072f2689da59d0c6714fb836a8f5ad139225d834c4ba4190fac5732be5` і містить рядок дослівно.
+
+Порівняно з baseline результат змінився на 19/30 кейсів; input tokens -1.9%, output tokens +177.9%, total tokens +44.4%, latency +120.3%. Один прогін не доводить причинність ресурсних змін, але дослівні відповіді підтверджують, що числовий override виконувався.
 
 ### Дефекти `lesson-03`
 
@@ -112,7 +120,7 @@ Raw reports:
 
 ## Вартість і звірка
 
-Три submitted-прогони разом: **350,883 tokens** (254,935 input; 95,948 output), **185 фактичних model calls**. За стандартним тарифом `gpt-5-mini` $0.25/M input і $2.00/M output: `(254,935 × 0.25 + 95,948 × 2.00) / 1,000,000 = $0.2556` без урахування можливого кешування.
+Три submitted-прогони разом: **404,880 tokens** (257,800 input; 147,080 output), **185 фактичних model calls**. За стандартним тарифом `gpt-5-mini` $0.25/M input і $2.00/M output: `(257,800 × 0.25 + 147,080 × 2.00) / 1,000,000 = $0.3586` без урахування можливого кешування. Новий третій прогін окремо: `(86,963 × 0.25 + 85,508 × 2.00) / 1,000,000 = $0.1928`.
 
 Звірка з provider console виконана 8 жовтня 2026: у доступному **Personal Organization / Default project**, діапазон October 2026, видно `No data`, `$0.00`, `0 tokens`, `0 requests`. Отже, ця консоль не є billing organization/project ключа стенду й не може підтвердити фактичне списання. У роботі лишається розрахунок із raw usage, а `$0.00` не видається за реальну вартість.
 
@@ -120,4 +128,4 @@ Raw reports:
 
 ## Рішення
 
-**SHIP automated daily gate, але не безумовний product release.** Clean дає 100%, `lesson-03` робить усі п'ять цільових дефектів видимими, а prompt experiment не показав регресії якості. П'ять human-oracle кейсів лишаються обов'язковою ручною/release-перевіркою; межі описані в `residual-risk.md`.
+**SHIP automated daily gate, але не безумовний product release.** Clean дає 100%, `lesson-03` робить усі п'ять цільових дефектів видимими, а numeric-override experiment навмисно погіршив 19/30 кейсів і виявив дві tolerance-прогалини. П'ять human-oracle кейсів лишаються обов'язковою ручною/release-перевіркою; межі описані в `residual-risk.md`.
